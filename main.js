@@ -1,132 +1,9 @@
 "use strict";
 
-const m4 = {
-  multiply: function (b, a) {
-    //prettier-ignore
-    const [
-      a00, a01, a02, a03,
-      a10, a11, a12, a13,
-      a20, a21, a22, a23,
-      a30, a31, a32, a33,
-    ] = a;
+import { m4 } from "./glassviewer/src/calc.js";
 
-    //prettier-ignore
-    const [
-      b00, b01, b02, b03,
-      b10, b11, b12, b13,
-      b20, b21, b22, b23,
-      b30, b31, b32, b33,
-    ] = b;
-
-    //prettier-ignore
-    return [(a00*b00) + (a01*b10) + (a02*b20) + (a03*b30),
-            (a00*b01) + (a01*b11) + (a02*b21) + (a03*b31),
-            (a00*b02) + (a01*b12) + (a02*b22) + (a03*b32),
-            (a00*b03) + (a01*b13) + (a02*b23) + (a03*b33),
-            (a10*b00) + (a11*b10) + (a12*b20) + (a13*b30),
-            (a10*b01) + (a11*b11) + (a12*b21) + (a13*b31),
-            (a10*b02) + (a11*b12) + (a12*b22) + (a13*b32),
-            (a10*b03) + (a11*b13) + (a12*b23) + (a13*b33),
-            (a20*b00) + (a21*b10) + (a22*b20) + (a23*b30),
-            (a20*b01) + (a21*b11) + (a22*b21) + (a23*b31),
-            (a20*b02) + (a21*b12) + (a22*b22) + (a23*b32),
-            (a20*b03) + (a21*b13) + (a22*b23) + (a23*b33),
-            (a30*b00) + (a31*b10) + (a32*b20) + (a33*b30),
-            (a30*b01) + (a31*b11) + (a32*b21) + (a33*b31),
-            (a30*b02) + (a31*b12) + (a32*b22) + (a33*b32),
-            (a30*b03) + (a31*b13) + (a32*b23) + (a33*b33),
-            ]
-  },
-
-  //convert from pixels to -1..1
-  projection: function (w, h, depth) {
-    // Note: This matrix flips the Y axis so that 0 is at the top.
-    //prettier-ignore
-    return [ 2 / w,     0,      0,      0,
-             0,     -2 / h, 0,          0,
-             0,         0,      2/depth,  0,
-            -1,         1,      0,      1];
-  },
-
-  translation: function (x, y, z) {
-    //prettier-ignore
-    return [
-        1, 0, 0, 0,   
-        0, 1, 0, 0,   
-        0, 0, 1, 0,
-        x, y, z, 1,
-    ];
-  },
-
-  rotationZ: function (fi) {
-    const rad = fi * (Math.PI / 180);
-
-    //prettier-ignore
-    return [
-        Math.cos(rad), Math.sin(rad),    0, 0,
-        -Math.sin(rad),  Math.cos(rad),  0, 0,
-        0,              0,              1,  0,
-        0,              0,              0,  1
-    ];
-  },
-  rotationX: function (fi) {
-    const rad = fi * (Math.PI / 180);
-
-    //prettier-ignore
-    return [
-        1,      0,              0,          0,
-        0, Math.cos(rad),   Math.sin(rad),  0,
-        0, -Math.sin(rad),  Math.cos(rad),  0, 
-        0,              0,          0,      1,
-    ];
-  },
-  rotationY: function (fi) {
-    const rad = fi * (Math.PI / 180);
-
-    //prettier-ignore
-    return [
-        Math.cos(rad),  0,   -Math.sin(rad),    0,
-            0,          1,          0,          0,
-        Math.sin(rad),  0,   Math.cos(rad),     0, 
-            0,          0,          0,          1,
-    ];
-  },
-
-  scaling: function (sx, sy, sz) {
-    //prettier-ignore
-    return [
-        sx, 0,  0,  0,
-        0,  sy, 0,  0,
-        0,  0,  sz, 0,
-        0,  0,  0,  1
-    ];
-  },
-
-  identity: function () {
-    //prettier-ignore
-    return [
-        1, 0, 0,
-        0, 1, 0,
-        0, 0, 1
-    ]
-  },
-
-  translate: function (m, tx, ty, tz) {
-    return m4.multiply(m, this.translation(tx, ty, tz));
-  },
-  scale: function (m, sx, sy, sz) {
-    return m4.multiply(m, this.scaling(sx, sy, sz));
-  },
-  rotateX: function (m, fi) {
-    return m4.multiply(m, this.rotationX(fi));
-  },
-  rotateY: function (m, fi) {
-    return m4.multiply(m, this.rotationY(fi));
-  },
-  rotateZ: function (m, fi) {
-    return m4.multiply(m, this.rotationZ(fi));
-  },
-};
+const canvasW = 1366;
+const canvasH = 768;
 
 function createShader(gl, type, source) {
   const shader = gl.createShader(type);
@@ -158,6 +35,8 @@ function main() {
   //1. init phase
   const canvas = document.querySelector("#glCanvas");
 
+  canvas.width = canvasW;
+  canvas.height = canvasH;
   const gl = canvas.getContext("webgl");
 
   if (gl === null) {
@@ -189,7 +68,6 @@ function main() {
   //construct vertex array
   const posBuffer = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-  //setGeometry(gl);
 
   setLetterF(gl);
 
@@ -266,12 +144,11 @@ function drawScene(
   //////// DRAW THE GEOMETRY ////////
 
   //set up transformation
-  let matrix = m4.projection(400, 400, 400);
-  matrix = m4.translate(matrix, 30, 50, 0);
-  matrix = m4.scale(matrix, 1, 1, 1);
-  matrix = m4.rotateX(matrix, 15);
-  matrix = m4.rotateY(matrix, 45);
-  //matrix = m4.rotateZ(matrix, 15);
+  let matrix = m4.projection(canvasW, canvasH, 400);
+  //matrix = m4.translate(matrix, 30, 50, 0);
+  //matrix = m4.scale(matrix, 1, 1, 1);
+  //matrix = m4.rotateX(matrix, 15);
+  // matrix = m4.rotateY(matrix, 45);
 
   gl.uniformMatrix4fv(matrixLoc, false, matrix);
 
@@ -279,40 +156,6 @@ function drawScene(
   const offset = 0;
   const count = 16 * 6; //16 rect construct the 3D F
   gl.drawArrays(primitiveType, offset, count);
-}
-
-function setGeometry(gl) {
-  //rectangle
-  //prettier-ignore
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    new Float32Array([
-        20, 20,
-        20, 380,
-        380, 20,
-        380, 20,
-        20, 380,
-        380, 380]), gl.STATIC_DRAW
-  );
-}
-
-function setRect(gl, x, y, w, h) {
-  const x1 = x;
-  const y1 = y;
-  const x2 = x + w;
-  const y2 = y + h;
-
-  //prettier-ignore
-  gl.bufferData(
-    gl.ARRAY_BUFFER,
-    new Float32Array([x1, y1,
-        x1, y2,
-        x2, y1,
-        x2, y1,
-        x1, y2, 
-        x2, y2]),
-    gl.STATIC_DRAW
-  );
 }
 
 function setColors(gl) {
@@ -451,10 +294,6 @@ function setColors(gl) {
 }
 
 function setLetterF(gl) {
-  const width = 100;
-  const height = 150;
-  const thickness = 30;
-
   //prettier-ignore
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
        // left column front

@@ -1,5 +1,9 @@
+body {
+  background-color: rgb(200, 200, 200);
+}
 .App {
   text-align: center;
+  margin: 10px;
 }
 
 .App-logo {
@@ -35,4 +39,21 @@
   to {
     transform: rotate(360deg);
   }
+}
+
+.glassViewer {
+  display: flex;
+}
+
+.sliderGroup {
+  display: flex;
+}
+
+.canvas--controller {
+  display: flex;
+  flex-direction: column;
+}
+
+.canvas--transform-grp {
+  display: flex;
 }

@@ -4,8 +4,9 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="style.css" />
     <title>Document</title>
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
 
     <script id="vertex-shader-2d" type="notjs">
       //an attribute will receive data from a buffer
@@ -37,12 +38,115 @@
       }
     </script>
   </head>
-  <body>
-    <h2>WebGL</h2>
-    <div id="uiContainer">
-      <div id="ui">
-        <div id="x"></div>
-        <div id="y"></div>
+  <body width="100%">
+    <div class="canvas--transform-grp">
+      <div class="canvas--controller">
+        <h3>Translate</h3>
+        <div class="sliderGroup">
+          <p>X:</p>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value="50"
+            class="slider"
+            id="translateX"
+          />
+        </div>
+        <div class="sliderGroup">
+          <p>Y:</p>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value="50"
+            class="slider"
+            id="translateY"
+          />
+        </div>
+        <div class="sliderGroup">
+          <p>Z:</p>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value="50"
+            class="slider"
+            id="translateZ"
+          />
+        </div>
+      </div>
+      <div class="canvas--controller">
+        <h3>Rotate</h3>
+        <div class="sliderGroup">
+          <p>X:</p>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value="50"
+            class="slider"
+            id="rotateX"
+          />
+        </div>
+        <div class="sliderGroup">
+          <p>Y:</p>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value="50"
+            class="slider"
+            id="rotateY"
+          />
+        </div>
+        <div class="sliderGroup">
+          <p>Z:</p>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value="50"
+            class="slider"
+            id="rotateZ"
+          />
+        </div>
+      </div>
+      <div class="canvas--controller">
+        <h3>Scale</h3>
+        <div class="sliderGroup">
+          <p>X:</p>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value="50"
+            class="slider"
+            id="scaleX"
+          />
+        </div>
+        <div class="sliderGroup">
+          <p>Y:</p>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value="50"
+            class="slider"
+            id="scaleY"
+          />
+        </div>
+        <div class="sliderGroup">
+          <p>Z:</p>
+          <input
+            type="range"
+            min="1"
+            max="100"
+            value="50"
+            class="slider"
+            id="scaleZ"
+          />
+        </div>
       </div>
     </div>
     <canvas id="glCanvas" width="400" height="400"> </canvas>
