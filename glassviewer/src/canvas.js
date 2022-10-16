@@ -92,22 +92,29 @@ export class CanvasDrawer {
 
     //1.c supply data to our program
     this.posAttribLoc = this.gl.getAttribLocation(program, "a_position");
+    this.colorAttribLoc = this.gl.getAttribLocation(program, "a_color");
     this.matrixAttribLoc = this.gl.getUniformLocation(program, "u_matrix");
 
     //construct vertex array
     const posBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, posBuffer);
-
     this._createObject();
 
+    //construct color
+    const colorBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
+    this._createColor();
+
     //2. rendering phase
-    this._drawScene(program, posBuffer);
+    this._drawScene(program, posBuffer, colorBuffer);
   }
 
-  _drawScene(program, posBuffer) {
+  _drawScene(program, posBuffer, colorBuffer) {
+    this.gl.enable(this.gl.DEPTH_TEST);
+
     // Clear the canvas
     this.gl.clearColor(0.3, 0.3, 0.3, 1);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
     // Tell it to use our program (pair of shaders)
     this.gl.useProgram(program);
@@ -116,22 +123,45 @@ export class CanvasDrawer {
     this.gl.enableVertexAttribArray(this.posAttribLoc);
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, posBuffer);
 
-    // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
-    var size = 3; // 3 components per iteration
-    var type = this.gl.FLOAT; // the data is 32bit floats
-    var normalize = false; // don't normalize the data
-    var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0; // start at the beginning of the buffer
-    this.gl.vertexAttribPointer(
-      this.posAttribLoc,
-      size,
-      type,
-      normalize,
-      stride,
-      offset
-    );
+    //POSITION
+    {
+      // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
+      var size = 3; // 3 components per iteration
+      var type = this.gl.FLOAT; // the data is 32bit floats
+      var normalize = false; // don't normalize the data
+      var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+      var offset = 0; // start at the beginning of the buffer
+      this.gl.vertexAttribPointer(
+        this.posAttribLoc,
+        size,
+        type,
+        normalize,
+        stride,
+        offset
+      );
+    }
 
-    let matrix = m4.projection(this.canvasW, this.canvasH, 1000);
+    //COLOR
+    {
+      this.gl.enableVertexAttribArray(this.colorAttribLoc);
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
+      const size = 3;
+      const type = this.gl.UNSIGNED_BYTE;
+      const normalize = true;
+      const stride = 0;
+      const offs = 0;
+
+      this.gl.vertexAttribPointer(
+        this.colorAttribLoc,
+        size,
+        type,
+        normalize,
+        stride,
+        offs
+      );
+    }
+
+    let matrix = m4.projection(this.canvasW, this.canvasH, 1200);
     matrix = m4.translate(
       matrix,
       this.translateX,
@@ -146,18 +176,77 @@ export class CanvasDrawer {
     this.gl.uniformMatrix4fv(this.matrixAttribLoc, false, matrix);
 
     // draw
-    var primitiveType = this.gl.TRIANGLES;
-    var offset = 0;
-    var count = 3;
-    this.gl.drawArrays(primitiveType, offset, count);
+    {
+      var primitiveType = this.gl.TRIANGLES;
+      var offset = 0;
+      var count = 18;
+      this.gl.drawArrays(primitiveType, offset, count);
+    }
+  }
+
+  _createColor() {
+    //prettier-ignore
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Uint8Array([
+         //front
+         250, 0, 0,
+         250, 0,  0,
+         250, 0, 0,
+
+         //left
+         0, 0, 100,
+         0, 0, 100,
+         0, 0, 100,
+         //right
+         0, 100, 50,
+         0, 100, 50,
+         0, 100, 50,
+         //rear
+         100, 100, 50,
+         100, 100, 50,
+         100, 100, 50,
+         
+         //bottom
+         200, 100, 150,
+         200, 100, 150,
+         200, 100, 150,
+         200, 100, 150,
+         200, 100, 150,
+         200, 100, 150,
+    ]), this.gl.STATIC_DRAW);
   }
 
   _createObject() {
     //prettier-ignore
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([
-            250, 0, 0,
+            //front
+            250, 0, 100,
             0, 250,  0,
-            500, 250, 0
+            500, 250, 0,
+
+            //left
+            250, 0, 100,
+            0, 250,  0,
+            0, 250, 200,
+
+            //right
+            250, 0, 100,
+            500, 250,  0,
+            500, 250, 200,
+
+            //rear
+            250, 0, 100,
+            0, 250, 200,
+            500, 250, 200,
+
+            //bottom
+            0, 250, 0,
+            0, 250, 200,
+            500, 250, 200,
+            0, 250, 0,
+            500, 250, 0,
+            500, 250, 200,
+
+
           ]), this.gl.STATIC_DRAW);
   }
 }

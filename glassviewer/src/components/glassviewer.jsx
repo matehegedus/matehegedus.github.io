@@ -5,8 +5,8 @@ function GlassViewer(props) {
   const canvas = React.useRef();
   const [translateX, setTranslateX] = useState(50);
   const [translateY, setTranslateY] = useState(50);
-  const [rotateX, setRotateX] = useState(0);
-  const [rotateY, setRotateY] = useState(0);
+  const [rotateX, setRotateX] = useState(45);
+  const [rotateY, setRotateY] = useState(45);
   const [rotateZ, setRotateZ] = useState(0);
   const [scale, setScale] = useState(1);
   let drawer;
