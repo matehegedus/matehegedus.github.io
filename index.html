@@ -3,18 +3,24 @@
 
       uniform mat4 u_matrix;
 
+      attribute vec4 a_color;
+      varying vec4 v_color;
       // all shaders have a main function
       void main() {
 
         // gl_Position is a special variable a vertex shader
         // is responsible for setting
         gl_Position = u_matrix * a_position;
+
+        v_color = a_color;
       }</script><script id="fragment-shader-2d" type="notjs">// fragment shaders don't have a default precision so we need
       // to pick one. mediump is a good default
       precision mediump float;
 
+      varying vec4 v_color;
+
       void main() {
         // gl_FragColor is a special variable a fragment shader
         // is responsible for setting
-        gl_FragColor = vec4(1, 0, 0.5, 1); // return redish-purple
-      }</script><script defer="defer" src="/static/js/main.a3d3d9f7.js"></script><link href="/static/css/main.9ffb63de.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
+        gl_FragColor = v_color;
+      }</script><script defer="defer" src="/static/js/main.ba70772e.js"></script><link href="/static/css/main.9ffb63de.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
