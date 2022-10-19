@@ -36,14 +36,16 @@ export const m4 = {
               ]
   },
 
-  //convert from pixels to -1..1
-  projection: function (w, h, depth) {
-    // Note: This matrix flips the Y axis so that 0 is at the top.
+  perspective: function (fieldOfViewInRadians, aspect, near, far) {
+    var f = Math.tan(Math.PI * 0.5 - 0.5 * fieldOfViewInRadians);
+    var rangeInv = 1.0 / (near - far);
     //prettier-ignore
-    return [ 2 / w,     0,      0,      0,
-               0,     -2 / h, 0,          0,
-               0,         0,      2/depth,  0,
-              -1,         1,      0,      1];
+    return [
+      f / aspect, 0, 0, 0,
+      0, f, 0, 0,
+      0, 0, (near + far) * rangeInv, -1,
+      0, 0, near * far * rangeInv * 2, 0
+    ];
   },
 
   translation: function (x, y, z) {

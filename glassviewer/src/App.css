@@ -57,3 +57,7 @@ body {
 .canvas--transform-grp {
   display: flex;
 }
+
+.canvas--controller--grp {
+  display: flex;
+}

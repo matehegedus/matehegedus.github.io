@@ -161,13 +161,19 @@ export class CanvasDrawer {
       );
     }
 
-    let matrix = m4.projection(this.canvasW, this.canvasH, 1200);
+    const aspect = this.canvasW / this.canvasH;
+    const zNear = 1;
+    const zFar = 2000;
+    const fieldOfViewRadians = 45 * (Math.PI / 180);
+    let matrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+
     matrix = m4.translate(
       matrix,
       this.translateX,
       this.translateY,
       this.translateZ
     );
+
     matrix = m4.rotateX(matrix, this.fiX);
     matrix = m4.rotateY(matrix, this.fiY);
     matrix = m4.rotateZ(matrix, this.fiZ);
