@@ -1,17 +1,15 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"/><link rel="icon" href="/favicon.ico"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#000000"/><meta name="description" content="Web site created using create-react-app"/><link rel="apple-touch-icon" href="/logo192.png"/><link rel="manifest" href="/manifest.json"/><title>Glass viewer</title><script id="vertex-shader-2d" type="notjs">// an attribute will receive data from a buffer
-      attribute vec4 a_position;
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><link rel="icon" href="/favicon.ico"/><meta name="viewport" content="width=device-width,initial-scale=1"/><meta name="theme-color" content="#000000"/><meta name="description" content="Web site created using create-react-app"/><link rel="apple-touch-icon" href="/logo192.png"/><link rel="manifest" href="/manifest.json"/><title>Glass viewer</title><script id="vertex-shader-2d" type="notjs">attribute vec4 a_position;
+      attribute vec4 a_color;
 
       uniform mat4 u_matrix;
 
-      attribute vec4 a_color;
       varying vec4 v_color;
-      // all shaders have a main function
-      void main() {
 
-        // gl_Position is a special variable a vertex shader
-        // is responsible for setting
+      void main() {
+        // Multiply the position by the matrix.
         gl_Position = u_matrix * a_position;
 
+        // Pass the color to the fragment shader.
         v_color = a_color;
       }</script><script id="fragment-shader-2d" type="notjs">// fragment shaders don't have a default precision so we need
       // to pick one. mediump is a good default
@@ -23,4 +21,4 @@
         // gl_FragColor is a special variable a fragment shader
         // is responsible for setting
         gl_FragColor = v_color;
-      }</script><script defer="defer" src="/static/js/main.ba70772e.js"></script><link href="/static/css/main.9ffb63de.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
+      }</script><script defer="defer" src="/static/js/main.0e3b2158.js"></script><link href="/static/css/main.1023fb3d.css" rel="stylesheet"></head><body><noscript>You need to enable JavaScript to run this app.</noscript><div id="root"></div></body></html>
