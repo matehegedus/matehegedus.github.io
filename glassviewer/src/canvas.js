@@ -1,6 +1,7 @@
 "use strict";
 
 import { m4 } from "./calc.js";
+import earcut from "earcut";
 
 export class CanvasDrawer {
   constructor(gl, w, h) {
@@ -17,6 +18,126 @@ export class CanvasDrawer {
     this.sX = 1;
     this.sY = 1;
     this.sZ = 1;
+
+    this.cameraAngle = 0;
+    this.shapesSide = [];
+
+    {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const pathElem = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      );
+
+      svg.setAttribute("width", "100");
+      svg.setAttribute("height", "100");
+
+      pathElem.setAttribute(
+        "d",
+        "M 10,10 L 80,10 A 10,10 0,0,1 90,20 L 90,80 A 10,10 0,0,1 80,90  L 60,90 Z"
+      );
+      pathElem.setAttribute("stroke", "black");
+      pathElem.setAttribute("stroke-width", "3");
+      pathElem.setAttribute("fill", "none");
+
+      svg.appendChild(pathElem);
+
+      this.toVertex(pathElem, 5);
+    }
+    //drillhole
+    {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      const pathElem = document.createElementNS(
+        "http://www.w3.org/2000/svg",
+        "path"
+      );
+
+      svg.setAttribute("width", "100");
+      svg.setAttribute("height", "100");
+
+      const cx = 50;
+      const cy = 40;
+      const r = 10;
+      pathElem.setAttribute(
+        "d",
+        ` M ${cx - r} ${cy}
+          a ${r},${r} 0 1,0 ${r * 2},0
+          a ${r},${r} 0 1,0 ${-(r * 2)},0`
+      );
+      pathElem.setAttribute("stroke", "black");
+      pathElem.setAttribute("stroke-width", "3");
+      pathElem.setAttribute("fill", "none");
+
+      svg.appendChild(pathElem);
+
+      this.toCutout(pathElem, 2);
+    }
+  }
+
+  /**
+   * @param {SVG Elem} pathSVG: basically any path (rect, circle, path..)
+   * @param {Number} n: distance between 2 vertices
+   * @returns vertex buffer;
+   */
+  toVertex(pathSVG, n) {
+    let pathLength = pathSVG.getTotalLength();
+    this.coordsFront = [];
+    this.coordsBottom = [];
+    var i = 0;
+    while (i < pathLength) {
+      let arr = pathSVG.getPointAtLength(i);
+
+      //push side segments
+      if (i > 0)
+        this.shapesSide.push([
+          this.coordsFront[this.coordsFront.length - 3],
+          this.coordsFront[this.coordsFront.length - 2],
+          0,
+          this.coordsFront[this.coordsFront.length - 3],
+          this.coordsFront[this.coordsFront.length - 2],
+          -20,
+          arr.x,
+          arr.y,
+          0,
+          arr.x,
+          arr.y,
+          -20,
+        ]);
+
+      this.coordsFront.push(arr.x, arr.y, 0);
+      this.coordsBottom.push(arr.x, arr.y, -20);
+
+      i += n;
+    }
+  }
+  toCutout(pathSVG, n) {
+    let pathLength = pathSVG.getTotalLength();
+    var i = 0;
+    while (i < pathLength) {
+      let arr = pathSVG.getPointAtLength(i);
+
+      //push side segments
+      if (i > 0)
+        this.shapesSide.push([
+          this.coordsFront[this.coordsFront.length - 3],
+          this.coordsFront[this.coordsFront.length - 2],
+          0,
+          this.coordsFront[this.coordsFront.length - 3],
+          this.coordsFront[this.coordsFront.length - 2],
+          -20,
+          arr.x,
+          arr.y,
+          0,
+          arr.x,
+          arr.y,
+          -20,
+        ]);
+
+      this.coordsFront.push(arr.x, arr.y, 0);
+      this.coordsBottom.push(arr.x, arr.y, -20);
+
+      i += n;
+    }
   }
 
   translate(tx, ty, tz) {
@@ -96,20 +217,22 @@ export class CanvasDrawer {
     this.matrixAttribLoc = this.gl.getUniformLocation(program, "u_matrix");
 
     //construct vertex array
-    const posBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, posBuffer);
-    this._createObject();
+    //this._createObject();
 
     //construct color
     const colorBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
     this._createColor();
 
+    this.posBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuffer);
+    this._createShapeObject();
+
     //2. rendering phase
-    this._drawScene(program, posBuffer, colorBuffer);
+    this._drawScene(program, colorBuffer);
   }
 
-  _drawScene(program, posBuffer, colorBuffer) {
+  _drawScene(program, colorBuffer) {
     this.gl.enable(this.gl.DEPTH_TEST);
 
     // Clear the canvas
@@ -119,12 +242,14 @@ export class CanvasDrawer {
     // Tell it to use our program (pair of shaders)
     this.gl.useProgram(program);
 
-    // Turn on the attribute and bind the position buffer
-    this.gl.enableVertexAttribArray(this.posAttribLoc);
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, posBuffer);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuffer);
+    // this._createShapeIndexes();
 
     //POSITION
     {
+      // Turn on the attribute and bind the position buffer
+      this.gl.enableVertexAttribArray(this.posAttribLoc);
+
       // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
       var size = 3; // 3 components per iteration
       var type = this.gl.FLOAT; // the data is 32bit floats
@@ -142,7 +267,7 @@ export class CanvasDrawer {
     }
 
     //COLOR
-    {
+    /*     {
       this.gl.enableVertexAttribArray(this.colorAttribLoc);
       this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
       const size = 3;
@@ -159,16 +284,29 @@ export class CanvasDrawer {
         stride,
         offs
       );
-    }
-
+    } */
+    this.indexBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+    // this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuffer);
+    //Projection
     const aspect = this.canvasW / this.canvasH;
     const zNear = 1;
     const zFar = 2000;
     const fieldOfViewRadians = 45 * (Math.PI / 180);
-    let matrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+    let projMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
 
-    matrix = m4.translate(
-      matrix,
+    // Camera
+    const radius = 100;
+
+    let cameraMatrix = m4.rotationY(this.cameraAngle);
+    cameraMatrix = m4.translate(cameraMatrix, 0, 0, radius * 1.5);
+
+    const viewMatrix = m4.inverse(cameraMatrix);
+
+    const viewProjMatrix = m4.multiply(projMatrix, viewMatrix);
+
+    let matrix = m4.translate(
+      viewProjMatrix,
       this.translateX,
       this.translateY,
       this.translateZ
@@ -179,14 +317,30 @@ export class CanvasDrawer {
     matrix = m4.rotateZ(matrix, this.fiZ);
     matrix = m4.scale(matrix, this.sX, this.sY, this.sZ);
     // set up matrix
-    this.gl.uniformMatrix4fv(this.matrixAttribLoc, false, matrix);
+    this.gl.uniformMatrix4fv(
+      this.matrixAttribLoc,
+      false,
+      //m4.normalizeM(this.canvasW, this.canvasH, 1)
+      matrix
+    );
 
     // draw
-    {
-      var primitiveType = this.gl.TRIANGLES;
-      var offset = 0;
-      var count = 18;
-      this.gl.drawArrays(primitiveType, offset, count);
+    for (let i = 0; i <= 1; ++i) {
+      this._createShapeObject(i === 0 ? this.coordsFront : this.coordsBottom);
+      this._createShapeIndexes(this.coordsFront);
+      const primitiveType = this.gl.TRIANGLES;
+      const count = this.indexes.length;
+      const indexType = this.gl.UNSIGNED_SHORT;
+      this.gl.drawElements(primitiveType, count, indexType, this.indexes);
+    }
+    //side
+    for (let i = 0; i < this.shapesSide.length; ++i) {
+      this._createShapeObject(this.shapesSide[i]);
+      this._createSideIndexes(this.shapesSide[i]);
+      const primitiveType = this.gl.TRIANGLES;
+      const count = this.indexes.length;
+      const indexType = this.gl.UNSIGNED_SHORT;
+      this.gl.drawElements(primitiveType, count, indexType, this.indexes);
     }
   }
 
@@ -221,38 +375,38 @@ export class CanvasDrawer {
     ]), this.gl.STATIC_DRAW);
   }
 
-  _createObject() {
+  _createShapeObject(coords) {
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuffer);
+
+    this.gl.bufferData(
+      this.gl.ARRAY_BUFFER,
+      new Float32Array(coords),
+      this.gl.STATIC_DRAW
+    );
+  }
+  _createShapeIndexes(coords) {
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+    this.indexes = earcut(coords, null, 3);
+
+    this.gl.bufferData(
+      this.gl.ELEMENT_ARRAY_BUFFER,
+      new Uint16Array(this.indexes),
+      this.gl.STATIC_DRAW
+    );
+  }
+
+  //they are always rectangles
+  _createSideIndexes() {
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
     //prettier-ignore
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([
-            //front
-            250, 0, 100,
-            0, 250,  0,
-            500, 250, 0,
+    this.indexes = [
+        0, 1, 2,
+        2, 1, 3];
 
-            //left
-            250, 0, 100,
-            0, 250,  0,
-            0, 250, 200,
-
-            //right
-            250, 0, 100,
-            500, 250,  0,
-            500, 250, 200,
-
-            //rear
-            250, 0, 100,
-            0, 250, 200,
-            500, 250, 200,
-
-            //bottom
-            0, 250, 0,
-            0, 250, 200,
-            500, 250, 200,
-            0, 250, 0,
-            500, 250, 0,
-            500, 250, 200,
-
-
-          ]), this.gl.STATIC_DRAW);
+    this.gl.bufferData(
+      this.gl.ELEMENT_ARRAY_BUFFER,
+      new Uint16Array(this.indexes),
+      this.gl.STATIC_DRAW
+    );
   }
 }
