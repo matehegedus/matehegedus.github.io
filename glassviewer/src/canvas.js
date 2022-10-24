@@ -19,8 +19,13 @@ export class CanvasDrawer {
     this.sY = 1;
     this.sZ = 1;
 
+    this.lightSourceX = 0;
+    this.lightSourceY = 0;
+    this.lightSourceZ = 20;
+
     this.cameraAngle = 0;
-    this.shapesSide = [];
+    this.shapeSideElems = [];
+    this.normSideElems = [];
 
     {
       const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -83,13 +88,15 @@ export class CanvasDrawer {
     let pathLength = pathSVG.getTotalLength();
     this.coordsFront = [];
     this.coordsBottom = [];
+    this.normalFront = [];
+    this.normalBottom = [];
     var i = 0;
     while (i < pathLength) {
       let arr = pathSVG.getPointAtLength(i);
 
       //push side segments
       if (i > 0)
-        this.shapesSide.push([
+        this.shapeSideElems.push([
           this.coordsFront[this.coordsFront.length - 3],
           this.coordsFront[this.coordsFront.length - 2],
           0,
@@ -109,7 +116,9 @@ export class CanvasDrawer {
 
       i += n;
     }
+    this.genNormals();
   }
+
   toCutout(pathSVG, n) {
     let pathLength = pathSVG.getTotalLength();
     var i = 0;
@@ -118,7 +127,7 @@ export class CanvasDrawer {
 
       //push side segments
       if (i > 0)
-        this.shapesSide.push([
+        this.shapeSideElems.push([
           this.coordsFront[this.coordsFront.length - 3],
           this.coordsFront[this.coordsFront.length - 2],
           0,
@@ -137,6 +146,67 @@ export class CanvasDrawer {
       this.coordsBottom.push(arr.x, arr.y, -20);
 
       i += n;
+    }
+    this.genNormals();
+  }
+
+  genNormals() {
+    this.normalFront = [];
+    this.normalBottom = [];
+    this.normSideElems = [];
+
+    for (let i = 0; i < this.coordsFront.length; ++i) {
+      const p0 = {
+        x: this.coordsFront[i++],
+        y: this.coordsFront[i++],
+        z: this.coordsFront[i++],
+      };
+      const p1 = {
+        x: this.coordsFront[i++],
+        y: this.coordsFront[i++],
+        z: this.coordsFront[i++],
+      };
+      const p2 = {
+        x: this.coordsFront[i++],
+        y: this.coordsFront[i++],
+        z: this.coordsFront[i],
+      };
+      const v1 = m4.normalizeV(m4.createV(p1, p0));
+      const v2 = m4.normalizeV(m4.createV(p1, p2));
+      const norm = m4.cross(v1, v2);
+      this.normalFront.push(norm.x, norm.y, norm.z);
+      this.normalFront.push(norm.x, norm.y, norm.z);
+      this.normalFront.push(norm.x, norm.y, norm.z);
+      this.normalBottom.push(-norm.x, -norm.y, -norm.z);
+      this.normalBottom.push(-norm.x, -norm.y, -norm.z);
+      this.normalBottom.push(-norm.x, -norm.y, -norm.z);
+    }
+
+    for (let i = 0; i < this.shapeSideElems.length; ++i) {
+      const p0 = {
+        x: this.shapeSideElems[i][0],
+        y: this.shapeSideElems[i][1],
+        z: this.shapeSideElems[i][2],
+      };
+      const p1 = {
+        x: this.shapeSideElems[i][3],
+        y: this.shapeSideElems[i][4],
+        z: this.shapeSideElems[i][5],
+      };
+      const p2 = {
+        x: this.shapeSideElems[i][6],
+        y: this.shapeSideElems[i][7],
+        z: this.shapeSideElems[i][8],
+      };
+      const v1 = m4.normalizeV(m4.createV(p1, p0));
+      const v2 = m4.normalizeV(m4.createV(p1, p2));
+      const norm = m4.cross(v1, v2);
+      //prettier-ignore
+      this.normSideElems.push([
+        norm.x, norm.y, norm.z,
+        norm.x, norm.y, norm.z,
+        norm.x, norm.y, norm.z,
+      ]);
     }
   }
 
@@ -156,6 +226,12 @@ export class CanvasDrawer {
     this.sX = sX;
     this.sY = sY;
     this.sZ = sZ;
+  }
+
+  setLightSource(x, y, z) {
+    this.lightSourceX = x;
+    this.lightSourceY = y;
+    this.lightSourceZ = z;
   }
 
   _createShader(type, source) {
@@ -213,11 +289,19 @@ export class CanvasDrawer {
 
     //1.c supply data to our program
     this.posAttribLoc = this.gl.getAttribLocation(program, "a_position");
-    this.colorAttribLoc = this.gl.getAttribLocation(program, "a_color");
-    this.matrixAttribLoc = this.gl.getUniformLocation(program, "u_matrix");
-
-    //construct vertex array
-    //this._createObject();
+    this.normalAttribLoc = this.gl.getAttribLocation(program, "a_normal");
+    this.u_ModelViewProjection = this.gl.getUniformLocation(
+      program,
+      "u_modelViewProjection"
+    );
+    this.u_model = this.gl.getUniformLocation(program, "u_model");
+    this.modelInverseTranspose = this.gl.getUniformLocation(
+      program,
+      "u_modelInverseTranspose"
+    );
+    this.u_viewPos = this.gl.getUniformLocation(program, "u_viewPos");
+    this.lightPosUniLoc = this.gl.getUniformLocation(program, "u_lightPos");
+    this.u_lightColor = this.gl.getUniformLocation(program, "u_lightColor");
 
     //construct color
     const colorBuffer = this.gl.createBuffer();
@@ -226,7 +310,9 @@ export class CanvasDrawer {
 
     this.posBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuffer);
-    this._createShapeObject();
+    this.normalBuffer = this.gl.createBuffer();
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
+    this.indexBuffer = this.gl.createBuffer();
 
     //2. rendering phase
     this._drawScene(program, colorBuffer);
@@ -242,12 +328,10 @@ export class CanvasDrawer {
     // Tell it to use our program (pair of shaders)
     this.gl.useProgram(program);
 
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuffer);
-    // this._createShapeIndexes();
-
     //POSITION
     {
       // Turn on the attribute and bind the position buffer
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuffer);
       this.gl.enableVertexAttribArray(this.posAttribLoc);
 
       // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
@@ -258,6 +342,25 @@ export class CanvasDrawer {
       var offset = 0; // start at the beginning of the buffer
       this.gl.vertexAttribPointer(
         this.posAttribLoc,
+        size,
+        type,
+        normalize,
+        stride,
+        offset
+      );
+    }
+    //NORMAL
+    {
+      //    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
+      this.gl.enableVertexAttribArray(this.normalAttribLoc);
+
+      var size = 3; // 3 components per iteration
+      var type = this.gl.FLOAT; // the data is 32bit floats
+      var normalize = false; // don't normalize the data
+      var stride = 0; // 0 = move forward size * sizeof(type) each iteration to get the next position
+      var offset = 0; // start at the beginning of the buffer
+      this.gl.vertexAttribPointer(
+        this.normalAttribLoc,
         size,
         type,
         normalize,
@@ -285,48 +388,70 @@ export class CanvasDrawer {
         offs
       );
     } */
-    this.indexBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
-    // this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuffer);
-    //Projection
-    const aspect = this.canvasW / this.canvasH;
-    const zNear = 1;
-    const zFar = 2000;
-    const fieldOfViewRadians = 45 * (Math.PI / 180);
-    let projMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
 
-    // Camera
-    const radius = 100;
-
-    let cameraMatrix = m4.rotationY(this.cameraAngle);
-    cameraMatrix = m4.translate(cameraMatrix, 0, 0, radius * 1.5);
-
-    const viewMatrix = m4.inverse(cameraMatrix);
-
-    const viewProjMatrix = m4.multiply(projMatrix, viewMatrix);
-
-    let matrix = m4.translate(
-      viewProjMatrix,
+    //MODEL-VIEW-PROJECTION matrices
+    //1. model (basically just the transformations we applied to our model)
+    let model_M = m4.translate(
+      m4.identity(),
       this.translateX,
       this.translateY,
       this.translateZ
     );
+    model_M = m4.rotateX(model_M, this.fiX);
+    model_M = m4.rotateY(model_M, this.fiY);
+    model_M = m4.rotateZ(model_M, this.fiZ);
+    model_M = m4.scale(model_M, this.sX, this.sY, this.sZ);
 
-    matrix = m4.rotateX(matrix, this.fiX);
-    matrix = m4.rotateY(matrix, this.fiY);
-    matrix = m4.rotateZ(matrix, this.fiZ);
-    matrix = m4.scale(matrix, this.sX, this.sY, this.sZ);
-    // set up matrix
+    // 2. view (= camera )
+    // camera pos, target pos
+    const camera = {
+      x: -30, //this.translateX,
+      y: 40, //this.translateY,
+      z: -250 + 200 - this.cameraAngle, //this.translateZ + 200 - this.cameraAngle,
+    };
+    const target = {
+      x: this.translateX,
+      y: this.translateY,
+      z: this.translateZ,
+    };
+    const tmpUp = { x: 0, y: 1, z: 0 };
+    const viewMatrix = m4.lookAt(camera, target, tmpUp);
+
+    //3. Projection (= make it perspective)
+    const aspect = this.canvasW / this.canvasH;
+    const zNear = 1;
+    const zFar = 2000;
+    const fieldOfViewRadians = 45 * (Math.PI / 180);
+
+    const projMatrix = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
+
+    const viewProjMatrix = m4.multiply(projMatrix, viewMatrix);
+    const MVP_Matrix = m4.multiply(viewProjMatrix, model_M);
+
+    this.gl.uniformMatrix4fv(this.u_ModelViewProjection, false, MVP_Matrix);
+    this.gl.uniformMatrix4fv(this.u_model, false, model_M);
+    this.gl.uniform3fv(this.u_lightColor, [1, 0, 1]);
+    this.gl.uniform3fv(this.lightPosUniLoc, [
+      this.lightSourceX,
+      this.lightSourceY,
+      this.lightSourceZ,
+    ]);
+    this.gl.uniform3fv(this.u_viewPos, [camera.x, camera.y, camera.z]);
+
+    var modelInverseMatrix = m4.inverse(model_M);
+    var modelInverseTransposeMatrix = m4.transpose(modelInverseMatrix);
     this.gl.uniformMatrix4fv(
-      this.matrixAttribLoc,
+      this.modelInverseTranspose,
       false,
-      //m4.normalizeM(this.canvasW, this.canvasH, 1)
-      matrix
+      modelInverseTransposeMatrix
     );
 
     // draw
+
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
     for (let i = 0; i <= 1; ++i) {
       this._createShapeObject(i === 0 ? this.coordsFront : this.coordsBottom);
+      this._createNormals(i === 0 ? this.normalFront : this.normalBottom);
       this._createShapeIndexes(this.coordsFront);
       const primitiveType = this.gl.TRIANGLES;
       const count = this.indexes.length;
@@ -334,9 +459,10 @@ export class CanvasDrawer {
       this.gl.drawElements(primitiveType, count, indexType, this.indexes);
     }
     //side
-    for (let i = 0; i < this.shapesSide.length; ++i) {
-      this._createShapeObject(this.shapesSide[i]);
-      this._createSideIndexes(this.shapesSide[i]);
+    for (let i = 0; i < this.shapeSideElems.length; ++i) {
+      this._createShapeObject(this.shapeSideElems[i]);
+      this._createNormals(this.normSideElems[i]);
+      this._createSideIndexes(this.shapeSideElems[i]);
       const primitiveType = this.gl.TRIANGLES;
       const count = this.indexes.length;
       const indexType = this.gl.UNSIGNED_SHORT;
@@ -406,6 +532,16 @@ export class CanvasDrawer {
     this.gl.bufferData(
       this.gl.ELEMENT_ARRAY_BUFFER,
       new Uint16Array(this.indexes),
+      this.gl.STATIC_DRAW
+    );
+  }
+
+  _createNormals(coords) {
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.normalBuffer);
+
+    this.gl.bufferData(
+      this.gl.ARRAY_BUFFER,
+      new Float32Array(coords),
       this.gl.STATIC_DRAW
     );
   }

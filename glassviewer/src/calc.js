@@ -112,6 +112,44 @@ export const m4 = {
       ]
   },
 
+  lookAt: function (camPos, target, up) {
+    const camDir = this.normalizeV(this.createV(target, camPos));
+    const camRight = this.normalizeV(this.cross(up, camDir)); //right axis
+    const camUp = this.normalizeV(this.cross(camDir, camRight)); //up axis
+
+    //prettier-ignore
+    /*     return m4.multiply([
+      camRight.x, camRight.y, camRight.z, 0,
+      camUp.x,    camUp.y,    camUp.z,    0,
+      camDir.x,   camDir.y,   camDir.z,   0,
+      0,          0,          0,          1
+    ],[
+      1, 0, 0, -camPos.x,
+      0, 1, 0, -camPos.y,
+      0, 0, 1, -camPos.y,
+      0, 0, 0, 1,
+    ]); */
+
+    //OLD rubbish from the web
+    //prettier-ignore
+    return [
+       camRight.x,  camRight.y, camRight.z, 0,
+       camUp.x,     camUp.y,    camUp.z,    0,
+       camDir.x,    camDir.y,   camDir.z,   0,
+       camPos.x,    camPos.y,   camPos.z,   1,
+    ];
+  },
+
+  transpose: function (m) {
+    //prettier-ignore
+    return [
+      m[0], m[4], m[8], m[12],
+      m[1], m[5], m[9], m[13],
+      m[2], m[6], m[10], m[14],
+      m[3], m[7], m[11], m[15],
+    ];
+  },
+
   inverse: function (m) {
     const m00 = m[0]; // m[0][0]
     const m01 = m[1]; // m[0][1]
@@ -211,6 +249,23 @@ export const m4 = {
       0, 0, 1/depth, 0,
       -1, 0.5, 0, 1
     ];
+  },
+
+  createV: function (p0, p1) {
+    return { x: p1.x - p0.x, y: p1.y - p0.y, z: p1.z - p0.z };
+  },
+
+  normalizeV: function (v) {
+    const magn = Math.sqrt(v.x * v.x + v.y * v.y + v.z * v.z);
+
+    return { x: v.x / magn, y: v.y / magn, z: v.z / magn };
+  },
+
+  cross: function (va, vb) {
+    const i = va.y * vb.z - va.z * vb.y;
+    const j = va.x * vb.z - va.z * vb.x;
+    const k = va.x * vb.y - va.y * vb.x;
+    return { x: i, y: -j, z: k };
   },
 
   translate: function (m, tx, ty, tz) {
