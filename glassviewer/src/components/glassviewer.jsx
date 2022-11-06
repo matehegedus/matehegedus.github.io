@@ -3,17 +3,19 @@ import { CanvasDrawer } from "../canvas";
 
 function GlassViewer(props) {
   const canvas = React.useRef();
-  const [translateX, setTranslateX] = useState(-30);
-  const [translateY, setTranslateY] = useState(40);
-  const [translateZ, setTranslateZ] = useState(-250);
+  const [translateX, setTranslateX] = useState(-40);
+  const [translateY, setTranslateY] = useState(0);
+  const [translateZ, setTranslateZ] = useState(-200);
   const [rotateX, setRotateX] = useState(180);
   const [rotateY, setRotateY] = useState(0);
   const [rotateZ, setRotateZ] = useState(0);
   const [scale, setScale] = useState(1);
-  const [cameraAngle, setCameraAngle] = useState(0);
-  const [lightSourceX, setLightSourceX] = useState(0);
+  const [cameraRight, setCameraRight] = useState(0);
+  const [cameraUp, setCameraUp] = useState(0);
+  const [cameraPos, setCameraPos] = useState(0);
+  const [lightSourceX, setLightSourceX] = useState(100);
   const [lightSourceY, setLightSourceY] = useState(0);
-  const [lightSourceZ, setLightSourceZ] = useState(20);
+  const [lightSourceZ, setLightSourceZ] = useState(-200);
   let drawer;
 
   useEffect(() => {
@@ -23,7 +25,7 @@ function GlassViewer(props) {
     drawer.rotate(rotateX, rotateY, rotateZ);
     drawer.scale(scale, scale, scale);
     drawer.setLightSource(lightSourceX, lightSourceY, lightSourceZ);
-    drawer.cameraAngle = cameraAngle;
+    drawer.setCamera(cameraRight, cameraUp, cameraPos);
     drawer.setupCanvas();
   });
 
@@ -37,8 +39,8 @@ function GlassViewer(props) {
               <p>X:</p>
               <input
                 type="range"
-                min={-props.width / 2}
-                max={props.width / 2}
+                min={-100}
+                max={100}
                 value={translateX}
                 onChange={(e) => {
                   setTranslateX(Number(e.target.value));
@@ -49,8 +51,8 @@ function GlassViewer(props) {
               <p>Y:</p>
               <input
                 type="range"
-                min={-props.height / 2}
-                max={props.height / 2}
+                min={-200}
+                max={200}
                 value={translateY}
                 onChange={(e) => {
                   setTranslateY(Number(e.target.value));
@@ -76,11 +78,11 @@ function GlassViewer(props) {
               <p>X:</p>
               <input
                 type="range"
-                min="0"
+                min="-360"
                 max="360"
                 value={rotateX}
                 onChange={(e) => {
-                  setRotateX(e.target.value);
+                  setRotateX(Number(e.target.value));
                 }}
               />
             </div>
@@ -88,11 +90,11 @@ function GlassViewer(props) {
               <p>Y:</p>
               <input
                 type="range"
-                min="0"
+                min="-360"
                 max="360"
                 value={rotateY}
                 onChange={(e) => {
-                  setRotateY(e.target.value);
+                  setRotateY(Number(e.target.value));
                 }}
               />
             </div>
@@ -100,11 +102,11 @@ function GlassViewer(props) {
               <p>Z:</p>
               <input
                 type="range"
-                min="0"
+                min="-360"
                 max="360"
                 value={rotateZ}
                 onChange={(e) => {
-                  setRotateZ(e.target.value);
+                  setRotateZ(Number(e.target.value));
                 }}
               />
             </div>
@@ -120,7 +122,7 @@ function GlassViewer(props) {
                 value={scale}
                 step={0.1}
                 onChange={(e) => {
-                  setScale(e.target.value);
+                  setScale(Number(e.target.value));
                 }}
               />
             </div>
@@ -130,15 +132,38 @@ function GlassViewer(props) {
           <div className="canvas--controller">
             <h3>Camera</h3>
             <div className="sliderGroup">
-              <p>Angle</p>
+              <p>X</p>
               <input
                 type="range"
-                min="0"
-                max="360"
-                value={cameraAngle}
-                step={0.1}
+                min="-200"
+                max="200"
+                value={cameraRight}
                 onChange={(e) => {
-                  setCameraAngle(e.target.value);
+                  setCameraRight(Number(e.target.value));
+                }}
+              />
+            </div>
+            <div className="sliderGroup">
+              <p>Y</p>
+              <input
+                type="range"
+                min="-200"
+                max="200"
+                value={cameraUp}
+                onChange={(e) => {
+                  setCameraUp(Number(e.target.value));
+                }}
+              />
+            </div>
+            <div className="sliderGroup">
+              <p>Z</p>
+              <input
+                type="range"
+                min="-200"
+                max="200"
+                value={cameraPos}
+                onChange={(e) => {
+                  setCameraPos(Number(e.target.value));
                 }}
               />
             </div>
@@ -153,7 +178,7 @@ function GlassViewer(props) {
                 max={props.width}
                 value={lightSourceX}
                 onChange={(e) => {
-                  setLightSourceX(e.target.value);
+                  setLightSourceX(Number(e.target.value));
                 }}
               />
             </div>
@@ -165,7 +190,7 @@ function GlassViewer(props) {
                 max={props.height}
                 value={lightSourceY}
                 onChange={(e) => {
-                  setLightSourceY(e.target.value);
+                  setLightSourceY(Number(e.target.value));
                 }}
               />
             </div>
@@ -176,9 +201,9 @@ function GlassViewer(props) {
                 min="-1500"
                 max="500"
                 value={lightSourceZ}
-                step={0.1}
+                step={1}
                 onChange={(e) => {
-                  setLightSourceZ(e.target.value);
+                  setLightSourceZ(Number(e.target.value));
                 }}
               />
             </div>

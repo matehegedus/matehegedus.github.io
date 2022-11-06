@@ -23,7 +23,9 @@ export class CanvasDrawer {
     this.lightSourceY = 0;
     this.lightSourceZ = 20;
 
-    this.cameraAngle = 0;
+    this.cameraRight = 0;
+    this.cameraUp = 0;
+    this.cameraPos = 0;
     this.shapeSideElems = [];
     this.normSideElems = [];
 
@@ -70,12 +72,12 @@ export class CanvasDrawer {
           a ${r},${r} 0 1,0 ${-(r * 2)},0`
       );
       pathElem.setAttribute("stroke", "black");
-      pathElem.setAttribute("stroke-width", "3");
+      pathElem.setAttribute("stroke-width", "5");
       pathElem.setAttribute("fill", "none");
 
       svg.appendChild(pathElem);
 
-      this.toCutout(pathElem, 2);
+      this.toCutout(pathElem, 1);
     }
   }
 
@@ -86,13 +88,22 @@ export class CanvasDrawer {
    */
   toVertex(pathSVG, n) {
     let pathLength = pathSVG.getTotalLength();
+
     this.coordsFront = [];
-    this.coordsBottom = [];
+    this.coordsRear = [];
     this.normalFront = [];
-    this.normalBottom = [];
+    this.normalRear = [];
     var i = 0;
+
+    const p = pathSVG.getPointAtLength(0);
+
+    let xMin = p.x;
+    let xMax = p.x;
+    let yMin = p.y;
+    let yMax = p.y;
+
     while (i < pathLength) {
-      let arr = pathSVG.getPointAtLength(i);
+      let p = pathSVG.getPointAtLength(i);
 
       //push side segments
       if (i > 0)
@@ -103,25 +114,32 @@ export class CanvasDrawer {
           this.coordsFront[this.coordsFront.length - 3],
           this.coordsFront[this.coordsFront.length - 2],
           -20,
-          arr.x,
-          arr.y,
+          p.x,
+          p.y,
           0,
-          arr.x,
-          arr.y,
+          p.x,
+          p.y,
           -20,
         ]);
 
-      this.coordsFront.push(arr.x, arr.y, 0);
-      this.coordsBottom.push(arr.x, arr.y, -20);
+      xMin = Math.min(p.x, xMin);
+      yMin = Math.min(p.y, yMin);
+      xMax = Math.max(p.x, xMax);
+      yMax = Math.max(p.y, yMax);
+      this.coordsFront.push(p.x, p.y, 0);
+      this.coordsRear.push(p.x, p.y, -20);
 
       i += n;
     }
+    this.shapeW = xMax - xMin;
+    this.shapeH = yMax - yMin;
+
     this.genNormals();
   }
 
   toCutout(pathSVG, n) {
     let pathLength = pathSVG.getTotalLength();
-    var i = 0;
+    var i = 1;
     while (i < pathLength) {
       let arr = pathSVG.getPointAtLength(i);
 
@@ -143,7 +161,7 @@ export class CanvasDrawer {
         ]);
 
       this.coordsFront.push(arr.x, arr.y, 0);
-      this.coordsBottom.push(arr.x, arr.y, -20);
+      this.coordsRear.push(arr.x, arr.y, -20);
 
       i += n;
     }
@@ -152,7 +170,7 @@ export class CanvasDrawer {
 
   genNormals() {
     this.normalFront = [];
-    this.normalBottom = [];
+    this.normalRear = [];
     this.normSideElems = [];
 
     for (let i = 0; i < this.coordsFront.length; ++i) {
@@ -177,9 +195,9 @@ export class CanvasDrawer {
       this.normalFront.push(norm.x, norm.y, norm.z);
       this.normalFront.push(norm.x, norm.y, norm.z);
       this.normalFront.push(norm.x, norm.y, norm.z);
-      this.normalBottom.push(-norm.x, -norm.y, -norm.z);
-      this.normalBottom.push(-norm.x, -norm.y, -norm.z);
-      this.normalBottom.push(-norm.x, -norm.y, -norm.z);
+      this.normalRear.push(-norm.x, -norm.y, -norm.z);
+      this.normalRear.push(-norm.x, -norm.y, -norm.z);
+      this.normalRear.push(-norm.x, -norm.y, -norm.z);
     }
 
     for (let i = 0; i < this.shapeSideElems.length; ++i) {
@@ -226,6 +244,12 @@ export class CanvasDrawer {
     this.sX = sX;
     this.sY = sY;
     this.sZ = sZ;
+  }
+
+  setCamera(right, up, pos) {
+    this.cameraRight = right;
+    this.cameraUp = up;
+    this.cameraPos = pos;
   }
 
   setLightSource(x, y, z) {
@@ -299,14 +323,15 @@ export class CanvasDrawer {
       program,
       "u_modelInverseTranspose"
     );
-    this.u_viewPos = this.gl.getUniformLocation(program, "u_viewPos");
-    this.lightPosUniLoc = this.gl.getUniformLocation(program, "u_lightPos");
     this.u_lightColor = this.gl.getUniformLocation(program, "u_lightColor");
 
-    //construct color
-    const colorBuffer = this.gl.createBuffer();
-    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-    this._createColor();
+    this.u_lightWorldPos = this.gl.getUniformLocation(
+      program,
+      "u_lightWorldPos"
+    );
+    this.u_viewWorldPos = this.gl.getUniformLocation(program, "u_viewWorldPos");
+
+    this.u_shininess = this.gl.getUniformLocation(program, "u_shininess");
 
     this.posBuffer = this.gl.createBuffer();
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.posBuffer);
@@ -315,10 +340,10 @@ export class CanvasDrawer {
     this.indexBuffer = this.gl.createBuffer();
 
     //2. rendering phase
-    this._drawScene(program, colorBuffer);
+    this._drawScene(program);
   }
 
-  _drawScene(program, colorBuffer) {
+  _drawScene(program) {
     this.gl.enable(this.gl.DEPTH_TEST);
 
     // Clear the canvas
@@ -369,26 +394,6 @@ export class CanvasDrawer {
       );
     }
 
-    //COLOR
-    /*     {
-      this.gl.enableVertexAttribArray(this.colorAttribLoc);
-      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, colorBuffer);
-      const size = 3;
-      const type = this.gl.UNSIGNED_BYTE;
-      const normalize = true;
-      const stride = 0;
-      const offs = 0;
-
-      this.gl.vertexAttribPointer(
-        this.colorAttribLoc,
-        size,
-        type,
-        normalize,
-        stride,
-        offs
-      );
-    } */
-
     //MODEL-VIEW-PROJECTION matrices
     //1. model (basically just the transformations we applied to our model)
     let model_M = m4.translate(
@@ -397,18 +402,33 @@ export class CanvasDrawer {
       this.translateY,
       this.translateZ
     );
-    model_M = m4.rotateX(model_M, this.fiX);
-    model_M = m4.rotateY(model_M, this.fiY);
+
+    model_M = m4.multiply(
+      m4.multiply(
+        m4.translate(m4.identity(), 0, this.shapeH / 2, 0),
+        m4.rotateX(model_M, this.fiX)
+      ),
+      m4.translate(m4.identity(), 0, -this.shapeH / 2, 0)
+    );
+
+    model_M = m4.multiply(
+      m4.multiply(
+        m4.translate(m4.identity(), this.shapeW / 2, 0, 0),
+        m4.rotateY(model_M, this.fiY)
+      ),
+      m4.translate(m4.identity(), -this.shapeW / 2, 0, 0)
+    );
+
     model_M = m4.rotateZ(model_M, this.fiZ);
     model_M = m4.scale(model_M, this.sX, this.sY, this.sZ);
 
-    // 2. view (= camera )
-    // camera pos, target pos
+    // 2. view
     const camera = {
-      x: -30, //this.translateX,
-      y: 40, //this.translateY,
-      z: -250 + 200 - this.cameraAngle, //this.translateZ + 200 - this.cameraAngle,
+      x: 0 - this.cameraRight, //this.translateX,
+      y: 0 - this.cameraUp, //this.translateY,
+      z: -200 + 100 - this.cameraPos, //this.translateZ + 200 - this.cameraAngle,
     };
+
     const target = {
       x: this.translateX,
       y: this.translateY,
@@ -430,13 +450,7 @@ export class CanvasDrawer {
 
     this.gl.uniformMatrix4fv(this.u_ModelViewProjection, false, MVP_Matrix);
     this.gl.uniformMatrix4fv(this.u_model, false, model_M);
-    this.gl.uniform3fv(this.u_lightColor, [1, 0, 1]);
-    this.gl.uniform3fv(this.lightPosUniLoc, [
-      this.lightSourceX,
-      this.lightSourceY,
-      this.lightSourceZ,
-    ]);
-    this.gl.uniform3fv(this.u_viewPos, [camera.x, camera.y, camera.z]);
+    this.gl.uniform3fv(this.u_lightColor, [1, 1, 1]);
 
     var modelInverseMatrix = m4.inverse(model_M);
     var modelInverseTransposeMatrix = m4.transpose(modelInverseMatrix);
@@ -446,12 +460,19 @@ export class CanvasDrawer {
       modelInverseTransposeMatrix
     );
 
-    // draw
+    this.gl.uniform3fv(this.u_lightWorldPos, [
+      this.lightSourceX,
+      this.lightSourceY,
+      this.lightSourceZ,
+    ]);
+    this.gl.uniform3fv(this.u_viewWorldPos, [camera.x, camera.y, camera.z]);
+    this.gl.uniform1f(this.u_shininess, 300);
 
+    // draw
     this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
     for (let i = 0; i <= 1; ++i) {
-      this._createShapeObject(i === 0 ? this.coordsFront : this.coordsBottom);
-      this._createNormals(i === 0 ? this.normalFront : this.normalBottom);
+      this._createShapeObject(i === 0 ? this.coordsFront : this.coordsRear);
+      this._createNormals(i === 0 ? this.normalFront : this.normalRear);
       this._createShapeIndexes(this.coordsFront);
       const primitiveType = this.gl.TRIANGLES;
       const count = this.indexes.length;
@@ -468,37 +489,6 @@ export class CanvasDrawer {
       const indexType = this.gl.UNSIGNED_SHORT;
       this.gl.drawElements(primitiveType, count, indexType, this.indexes);
     }
-  }
-
-  _createColor() {
-    //prettier-ignore
-    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Uint8Array([
-         //front
-         250, 0, 0,
-         250, 0,  0,
-         250, 0, 0,
-
-         //left
-         0, 0, 100,
-         0, 0, 100,
-         0, 0, 100,
-         //right
-         0, 100, 50,
-         0, 100, 50,
-         0, 100, 50,
-         //rear
-         100, 100, 50,
-         100, 100, 50,
-         100, 100, 50,
-         
-         //bottom
-         200, 100, 150,
-         200, 100, 150,
-         200, 100, 150,
-         200, 100, 150,
-         200, 100, 150,
-         200, 100, 150,
-    ]), this.gl.STATIC_DRAW);
   }
 
   _createShapeObject(coords) {
