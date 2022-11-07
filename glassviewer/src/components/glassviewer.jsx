@@ -28,6 +28,11 @@ function GlassViewer(props) {
     drawer.setCamera(cameraRight, cameraUp, cameraPos);
     drawer.setupCanvas();
   });
+  
+  useEffect(()=>{
+    // const gl = canvas.current.getContext("webgl");
+    // drawer = new CanvasDrawer(gl, props.width, props.height);  
+  }, []);
 
   return (
     <div className="glassViewer">
