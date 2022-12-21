@@ -1,17 +1,56 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import { createRoot } from "react-dom/client";
+import React, { useState } from "react";
+import { Canvas, useThree } from "@react-three/fiber";
 
-const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+import CameraController from "./components/gl/camera/cameracontroller.jsx";
+import Cube from "./components/gl/object/cube.jsx";
+import Ground from "./components/gl/object/ground.jsx";
+import InputField from "./components/inputField.jsx";
 
-// If you want to start measuring performance in your app, pass a function
-// to log results (for example: reportWebVitals(console.log))
-// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
-reportWebVitals();
+function App() {
+  const [width, setWidth] = useState(3);
+  const [height, setHeight] = useState(4);
+
+  return (
+    <div className="main">
+      <div className="controls">
+        <InputField
+          text="Width"
+          value={width}
+          onValueChange={(val) => {
+            setWidth(val);
+          }}
+        />
+        <InputField
+          text="Height"
+          value={height}
+          onValueChange={(val) => {
+            setHeight(val);
+          }}
+        />
+        <button
+          onClick={() => {
+            // console.log(box);
+          }}
+        >
+          test
+        </button>
+      </div>
+      <div id="canvas-container" style={{ height: "100vh" }}>
+        <Canvas
+          height={1500}
+          camera={{ fov: 75 }}
+          style={{ background: "#acacac" }}
+        >
+          <ambientLight intensity={0.3} color={"white"} />
+          <directionalLight position={[1, 0, 2]} />
+          <Ground />
+          <Cube size={{ width, height }} pos={{ x: 0.0, y: 2, z: 0.0 }} />
+          <CameraController />
+        </Canvas>
+      </div>
+    </div>
+  );
+}
+
+createRoot(document.getElementById("root")).render(<App />);
