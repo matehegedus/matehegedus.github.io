@@ -7,7 +7,7 @@ function CameraController(props) {
   const { camera, scene, gl } = useThree();
 
   useEffect(() => {
-    const targetObj = scene.getObjectByName("boxMesh");
+    const targetObj = scene.getObjectByName("paneMesh");
     const targetSize = targetObj.geometry.parameters;
     const controls = new OrbitControls(camera, gl.domElement);
     controls.minDistance = 3;

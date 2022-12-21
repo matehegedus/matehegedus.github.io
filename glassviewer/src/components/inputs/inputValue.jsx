@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-function InputField(props) {
+function InputValue(props) {
   const [value, setValue] = useState(props.value ?? 1);
 
   return (
@@ -20,4 +20,4 @@ function InputField(props) {
   );
 }
 
-export default InputField;
+export default InputValue;

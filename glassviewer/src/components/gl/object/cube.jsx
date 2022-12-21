@@ -11,11 +11,7 @@ function Cube(props) {
   }, []);
 
   return (
-    <mesh
-      name="boxMesh"
-      ref={meshRef}
-      position={[props.pos.x, props.pos.y, props.pos.z]}
-    >
+    <mesh name="boxMesh" ref={meshRef} position={[0, props.size.height / 2, 0]}>
       <boxGeometry args={[props.size.width, props.size.height, 0.2]} />
       <meshPhysicalMaterial
         metalness={0.1}
