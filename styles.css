@@ -31,4 +31,8 @@ body {
 
 .input-value {
   margin: 5px;
+  display: flex;
+  align-items: center;
+  align-content: center;
+  flex-direction: row;
 }
