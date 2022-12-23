@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" 
+         "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" 
+     xmlns:xlink="http://www.w3.org/1999/xlink" width="500" height="500" >
+<g>
+ <path d="M 10,10 L 490,10 A 10,10 0,0,1 500,20 L 500,400 L 200 400 Z M 150,150 a 15,15 0,1,0 30,0 a 15,15 0,1,0 -30,0 Z" 
+ stroke="green" stroke-width="4" fill="yellow" /> 
+ </g>
+ </svg>

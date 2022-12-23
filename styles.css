@@ -21,7 +21,14 @@ body {
   flex-direction: row;
 }
 
-.controls {
+.controls,
+.controls-rect {
+  width: 200px;
+  margin: 5px;
   display: flex;
   flex-direction: column;
+}
+
+.input-value {
+  margin: 5px;
 }
