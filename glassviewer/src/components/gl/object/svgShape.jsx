@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Box3, ExtrudeGeometry, Mesh, MeshPhysicalMaterial, Path } from "three";
+import * as THREE from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader";
 
 function SvgShape(props) {
@@ -17,12 +18,17 @@ function SvgShape(props) {
 
       const shape = SVGLoader.createShapes(path)[0];
       const material = new MeshPhysicalMaterial({
-        color: 0x8aa6a6,
-        metalness: 0.1,
-        roughness: 0.0,
-        transmission: 0.9,
-        side: 2,
+        color: 0x468781,
       });
+      material.thickness = 13.0;
+      material.roughness = 0.11;
+      material.metalness = 0.01;
+      material.side = THREE.DoubleSide;
+      material.clearcoat = 0.1;
+      material.clearcoatRoughness = 0;
+      material.transmission = 0.89;
+      material.ior = 1.25;
+      material.envMapIntensity = 5;
 
       props.drillHoles.forEach((dh) => {
         const drillHole = new Path();
@@ -30,8 +36,9 @@ function SvgShape(props) {
         shape.holes.push(drillHole);
       });
 
-      const geometry = new ExtrudeGeometry(shape);
+      const geometry = new ExtrudeGeometry(shape, { depth: 10 });
       const mesh = new Mesh(geometry, material);
+      mesh.castShadow = true;
 
       mesh.scale.set(0.01, 0.01, 0.01);
       group.add(mesh);
@@ -44,7 +51,6 @@ function SvgShape(props) {
         item.position.y = yOffset;
         item.position.x = xOffset;
       });
-      props.onShapeAdded();
     });
   });
 
