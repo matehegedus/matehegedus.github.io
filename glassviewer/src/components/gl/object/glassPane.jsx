@@ -1,26 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { Brush, Subtraction } from "@react-three/csg";
+import { DoubleSide } from "three";
 
 function GlassPane(props) {
-  const paneRef = useRef();
-
-  useEffect(() => {
-    const pane = paneRef.current;
-    console.log("pane is created:", paneRef.current);
-    //   pane.updateMatrix();
-  }, []);
+  const shapeW = props.size.width / 1000;
+  const shapeH = props.size.height / 1000;
 
   return (
-    <mesh
-      ref={paneRef}
-      name="paneMesh"
-      position={[0, props.size.height / 2, 0]}
-    >
+    <mesh name="paneMesh" position={[shapeW / 2, shapeH / 2, 0]}>
       {props.drillHoles && props.drillHoles.length > 0 ? (
         <>
           <Subtraction>
             <Brush a>
-              <boxGeometry args={[props.size.width, props.size.height, 0.2]} />
+              <boxGeometry args={[shapeW, shapeH, 0.04]} />
             </Brush>
             <Brush
               b
@@ -33,19 +25,25 @@ function GlassPane(props) {
             </Brush>
           </Subtraction>
           <meshPhysicalMaterial
+            side={DoubleSide}
             metalness={0.1}
             roughness={0.0}
             transmission={0.9}
+            transparent={true}
+            opacity={0.9}
             color={0x8aa6a6}
           />
         </>
       ) : (
         <>
-          <boxGeometry args={[props.size.width, props.size.height, 0.2]} />
+          <boxGeometry args={[shapeW, shapeH, 0.04]} />
           <meshPhysicalMaterial
+            side={DoubleSide}
             metalness={0.1}
             roughness={0.0}
             transmission={0.9}
+            transparent={true}
+            opacity={0.9}
             color={0x8aa6a6}
           />
         </>

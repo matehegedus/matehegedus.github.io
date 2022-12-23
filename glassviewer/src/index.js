@@ -3,38 +3,56 @@ import React, { useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
 
 import CameraController from "./components/gl/camera/cameracontroller.jsx";
-import Cube from "./components/gl/object/cube.jsx";
 import Ground from "./components/gl/object/ground.jsx";
 import InputValue from "./components/inputs/inputValue.jsx";
 import GlassPane from "./components/gl/object/glassPane.jsx";
 import InputCoord from "./components/inputs/inputCoord.jsx";
+import SvgShape from "./components/gl/object/svgShape";
+import "bootstrap/dist/css/bootstrap.css";
 
 function App() {
-  const [width, setWidth] = useState(3);
-  const [height, setHeight] = useState(4);
+  const [shapeType, setShapeType] = useState("Rectangle");
+  const [width, setWidth] = useState(3000);
+  const [height, setHeight] = useState(4000);
 
   const [drillHoles, setDrillHoles] = useState([]);
 
   return (
     <div className="main">
       <div className="controls">
-        <InputValue
-          text="Width"
-          value={width}
-          onValueChange={(val) => {
-            setWidth(val);
-          }}
-        />
-        <InputValue
-          text="Height"
-          value={height}
-          onValueChange={(val) => {
-            setHeight(val);
-          }}
-        />
-        <button
+        <input
+          type="button"
+          className="btn btn-primary"
           onClick={() => {
-            setDrillHoles([{ x: 0, y: 0, r: 0.5 }]);
+            setShapeType(shapeType === "Rectangle" ? "Custom" : "Rectangle");
+          }}
+          value={shapeType}
+        />
+
+        {shapeType === "Rectangle" && (
+          <div className="controls-rect">
+            <InputValue
+              text="Width"
+              value={width}
+              onValueChange={(val) => {
+                setWidth(val);
+              }}
+            />
+            <InputValue
+              text="Height"
+              value={height}
+              onValueChange={(val) => {
+                setHeight(val);
+              }}
+            />
+          </div>
+        )}
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={() => {
+            alert("Under development");
+            // else setDrillHoles([{ x: 0, y: 0, r: 0.5 }]);
           }}
         >
           Add drillhole
@@ -69,8 +87,12 @@ function App() {
           <ambientLight intensity={0.3} color={"white"} />
           <directionalLight position={[1, 0, 2]} />
           <Ground />
-          {/* <Cube size={{ width, height }} /> */}
-          <GlassPane size={{ width, height }} drillHoles={drillHoles} />
+          {shapeType === "Rectangle" ? (
+            <GlassPane size={{ width, height }} drillHoles={drillHoles} />
+          ) : (
+            <SvgShape />
+          )}
+
           <CameraController />
         </Canvas>
       </div>

@@ -8,14 +8,17 @@ function CameraController(props) {
 
   useEffect(() => {
     const targetObj = scene.getObjectByName("paneMesh");
-    const targetSize = targetObj.geometry.parameters;
     const controls = new OrbitControls(camera, gl.domElement);
     controls.minDistance = 3;
     controls.maxDistance = 20;
     controls.enableDamping = true;
 
-    camera.position.set(-3, 3, 5);
-    controls.target.set(0, 2, 0);
+    camera.position.set(-1, 3, 5);
+    controls.target.set(
+      targetObj.position.x,
+      targetObj.position.y,
+      targetObj.position.z
+    );
     controls.update();
 
     // 1 - grid
