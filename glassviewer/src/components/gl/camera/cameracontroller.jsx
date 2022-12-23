@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useThree } from "@react-three/fiber";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 
-import { GridHelper } from "three";
+import { Box3, GridHelper } from "three";
 function CameraController(props) {
   const { camera, scene, gl } = useThree();
 
@@ -13,12 +13,11 @@ function CameraController(props) {
     controls.maxDistance = 20;
     controls.enableDamping = true;
 
-    camera.position.set(-1, 3, 5);
-    controls.target.set(
-      targetObj.position.x,
-      targetObj.position.y,
-      targetObj.position.z
-    );
+    camera.position.set(-2, 3, 8);
+
+    if (targetObj.children.length > 0) {
+      controls.target.set(0, 2, 0);
+    }
     controls.update();
 
     // 1 - grid

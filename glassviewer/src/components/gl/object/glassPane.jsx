@@ -14,15 +14,26 @@ function GlassPane(props) {
             <Brush a>
               <boxGeometry args={[shapeW, shapeH, 0.04]} />
             </Brush>
-            <Brush
-              b
-              position={[props.drillHoles[0].x, props.drillHoles[0].y, 0]}
-              rotation={[-Math.PI / 2, 0, 0]}
-            >
-              <cylinderGeometry
-                args={[props.drillHoles[0].r, props.drillHoles[0].r, 1, 30]}
-              />
-            </Brush>
+            {
+              <Brush
+                b
+                position={[
+                  props.drillHoles[0].x / 1000,
+                  props.drillHoles[0].y / 1000,
+                  0,
+                ]}
+                rotation={[-Math.PI / 2, 0, 0]}
+              >
+                <cylinderGeometry
+                  args={[
+                    props.drillHoles[0].r / 100,
+                    props.drillHoles[0].r / 100,
+                    1,
+                    30,
+                  ]}
+                />
+              </Brush>
+            }
           </Subtraction>
           <meshPhysicalMaterial
             side={DoubleSide}

@@ -1,8 +1,8 @@
-import React, { useMemo, useRef } from "react";
-import { Box3, ExtrudeGeometry, Mesh, MeshPhysicalMaterial } from "three";
+import React, { useMemo, useRef, useState } from "react";
+import { Box3, ExtrudeGeometry, Mesh, MeshPhysicalMaterial, Path } from "three";
 import { SVGLoader } from "three/examples/jsm/loaders/SVGLoader";
 
-function SvgShape() {
+function SvgShape(props) {
   const groupRef = useRef();
 
   const loader = new SVGLoader();
@@ -12,9 +12,10 @@ function SvgShape() {
       const path = data.paths[0];
 
       const group = groupRef.current;
+      group.clear();
       group.scale.y = -1;
 
-      const shapes = SVGLoader.createShapes(path);
+      const shape = SVGLoader.createShapes(path)[0];
       const material = new MeshPhysicalMaterial({
         color: 0x8aa6a6,
         metalness: 0.1,
@@ -23,19 +24,27 @@ function SvgShape() {
         side: 2,
       });
 
-      for (let j = 0; j < shapes.length; j++) {
-        const shape = shapes[j];
-        const geometry = new ExtrudeGeometry(shape);
-        const mesh = new Mesh(geometry, material);
+      props.drillHoles.forEach((dh) => {
+        const drillHole = new Path();
+        drillHole.ellipse(dh.x + dh.r, dh.y, dh.r, dh.r, 0, Math.PI * 2);
+        shape.holes.push(drillHole);
+      });
 
-        mesh.scale.set(0.01, 0.01, 0.01);
-        group.add(mesh);
-      }
+      const geometry = new ExtrudeGeometry(shape);
+      const mesh = new Mesh(geometry, material);
 
-      //set offset for Y
+      mesh.scale.set(0.01, 0.01, 0.01);
+      group.add(mesh);
+
+      //align shape to the middle
       const box = new Box3().setFromObject(group);
       const yOffset = box.min.y;
-      group.children.forEach((item) => (item.position.y = yOffset));
+      const xOffset = -box.max.x / 2;
+      group.children.forEach((item) => {
+        item.position.y = yOffset;
+        item.position.x = xOffset;
+      });
+      props.onShapeAdded();
     });
   });
 

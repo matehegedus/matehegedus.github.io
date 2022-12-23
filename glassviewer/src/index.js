@@ -11,72 +11,52 @@ import SvgShape from "./components/gl/object/svgShape";
 import "bootstrap/dist/css/bootstrap.css";
 
 function App() {
-  const [shapeType, setShapeType] = useState("Rectangle");
-  const [width, setWidth] = useState(3000);
-  const [height, setHeight] = useState(4000);
-
   const [drillHoles, setDrillHoles] = useState([]);
+
+  const drillHolesW = () => {
+    const listItems = drillHoles.map((elem, idx) => {
+      return (
+        <li key={`dh_${idx}`}>
+          <InputCoord
+            x={elem.x}
+            y={elem.y}
+            onCoordChange={(coord) => {
+              const dhs = [...drillHoles];
+              const dh = { ...dhs[idx], x: coord.x, y: coord.y };
+              dhs[idx] = dh;
+              setDrillHoles(dhs);
+            }}
+          />
+          <InputValue
+            text="radius"
+            value={elem.r}
+            onValueChange={(val) => {
+              const dhs = [...drillHoles];
+              const dh = { ...dhs[idx], r: val };
+              dhs[idx] = dh;
+              setDrillHoles(dhs);
+            }}
+          />
+        </li>
+      );
+    });
+
+    return <ul>{listItems}</ul>;
+  };
 
   return (
     <div className="main">
       <div className="controls">
-        <input
-          type="button"
-          className="btn btn-primary"
-          onClick={() => {
-            setShapeType(shapeType === "Rectangle" ? "Custom" : "Rectangle");
-          }}
-          value={shapeType}
-        />
-
-        {shapeType === "Rectangle" && (
-          <div className="controls-rect">
-            <InputValue
-              text="Width"
-              value={width}
-              onValueChange={(val) => {
-                setWidth(val);
-              }}
-            />
-            <InputValue
-              text="Height"
-              value={height}
-              onValueChange={(val) => {
-                setHeight(val);
-              }}
-            />
-          </div>
-        )}
         <button
           type="button"
           className="btn btn-primary"
           onClick={() => {
-            alert("Under development");
-            // else setDrillHoles([{ x: 0, y: 0, r: 0.5 }]);
+            setDrillHoles([...drillHoles, { x: 250, y: 250, r: 15 }]);
           }}
         >
           Add drillhole
         </button>
-        {drillHoles.length > 0 && (
-          <>
-            <InputCoord
-              x={drillHoles[0].x}
-              y={drillHoles[0].y}
-              onCoordChange={(coord) => {
-                setDrillHoles([{ x: coord.x, y: coord.y, r: drillHoles[0].r }]);
-              }}
-            />
-            <InputValue
-              text="radius"
-              value={drillHoles[0].r}
-              onValueChange={(val) => {
-                setDrillHoles([
-                  { x: drillHoles[0].x, y: drillHoles[0].y, r: val },
-                ]);
-              }}
-            />
-          </>
-        )}
+        {drillHolesW()}
       </div>
       <div id="canvas-container" style={{ height: "100vh" }}>
         <Canvas
@@ -87,12 +67,7 @@ function App() {
           <ambientLight intensity={0.3} color={"white"} />
           <directionalLight position={[1, 0, 2]} />
           <Ground />
-          {shapeType === "Rectangle" ? (
-            <GlassPane size={{ width, height }} drillHoles={drillHoles} />
-          ) : (
-            <SvgShape />
-          )}
-
+          <SvgShape drillHoles={drillHoles} />
           <CameraController />
         </Canvas>
       </div>
